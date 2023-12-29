@@ -1,3 +1,7 @@
+"""
+Create images from SSM.
+"""
+
 import argparse
 import os.path
 import pathlib
@@ -16,22 +20,38 @@ def parseargs():
     Parse arguments
     """
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('-i', '--input_dir', type=str, help="Input directory", default=os.path.expanduser("../ssm"))
-    parser.add_argument('-o', '--output_dir', type=str, help="Output directory", default=os.path.expanduser("../demo_out/ssm"))
-    parser.add_argument('-n', '--number', type=int, help="Number images", default=10)
-    args = parser.parse_args()
-    return args
+    parser.add_argument('-i',
+                        '--input_dir',
+                        type=str,
+                        help="Input directory",
+                        default=os.path.expanduser("../ssm"))
+    parser.add_argument('-o',
+                        '--output_dir',
+                        type=str,
+                        help="Output directory",
+                        default=os.path.expanduser("../demo_out/ssm"))
+    parser.add_argument('-n',
+                        '--number',
+                        type=int,
+                        help="Number images",
+                        default=10)
+    arguments = parser.parse_args()
+    return arguments
 
 def columnvec2xyz(observations):
+    """
+    Reshape a columnvector [x1, y1, z1, x2, ... ] into a 2D vector of 
+    [[x1, y1, z1], [x2, ...], ...]
+    """
     axis = 0
     cur_shape = numpy.array(observations).shape
     assert cur_shape[-1] % 3 == 0, f"last axis {axis} not divisible by 3"
     if len(cur_shape) == 1:
         return numpy.reshape(observations,(cur_shape[0]//3,3))
-    l = list(cur_shape)
-    l[-1] //= 3
-    l += [3]
-    return numpy.reshape(observations,tuple(l))
+    my_list = list(cur_shape)
+    my_list[-1] //= 3
+    my_list += [3]
+    return numpy.reshape(observations,tuple(my_list))
 
 def polydata_from_points_cells(points,cells):
     """
@@ -47,31 +67,31 @@ def polydata_from_points_cells(points,cells):
     # This function follows mostly this example:
     # https://kitware.github.io/vtk-examples/site/Python/GeometricObjects/Triangle/
     vtk_points = vtk.vtkPoints()
-    for pt in points:
-        vtk_points.InsertNextPoint(pt[0],pt[1],pt[2])
+    for point in points:
+        vtk_points.InsertNextPoint(point[0],point[1],point[2])
     vtk_cells = vtk.vtkCellArray()
-    for cl in cells:
+    for cell in cells:
         triangle = vtk.vtkTriangle()
-        triangle.GetPointIds().SetId(0, cl[0])
-        triangle.GetPointIds().SetId(1, cl[1])
-        triangle.GetPointIds().SetId(2, cl[2])
+        triangle.GetPointIds().SetId(0, cell[0])
+        triangle.GetPointIds().SetId(1, cell[1])
+        triangle.GetPointIds().SetId(2, cell[2])
         vtk_cells.InsertNextCell(triangle)
     # Set polydata
-    polydata = vtk.vtkPolyData()
-    polydata.SetPoints(vtk_points)
-    polydata.SetPolys(vtk_cells)
-    return polydata
+    my_polydata = vtk.vtkPolyData()
+    my_polydata.SetPoints(vtk_points)
+    my_polydata.SetPolys(vtk_cells)
+    return my_polydata
 
-def main():
+if __name__ == "__main__":
     args = parseargs()
     with open(f"{args.input_dir}/template_cells.pickle", "rb") as handle:
         cls_t = pickle.load(handle)
     classes = ("control", "coronal", "metopic", "sagittal")
     painter = painting.ImageFromDistancesCreator()
-    for cl in classes:
-        with open(f"{args.input_dir}/{cl}.pickle", "rb") as handle:
+    for cls in classes:
+        with open(f"{args.input_dir}/{cls}.pickle", "rb") as handle:
             sm_dict = pickle.load(handle)
-        cur_dir = args.output_dir + f"/{cl}"
+        cur_dir = args.output_dir + f"/{cls}"
         if not os.path.exists(cur_dir):
             pathlib.Path(cur_dir).mkdir(parents=True)
         for i in range(args.number):
@@ -89,7 +109,4 @@ def main():
             img = painter([distances])[0]
             img_uint8 = numpy.uint8(img * 255)
             skimage.io.imsave(cur_dir + f"/drawn_{i}.png",img_uint8)
-            print(f"Done {cl} {i}")
-
-if __name__ == "__main__":
-    main()
+            print(f"Done {cls} {i}")
