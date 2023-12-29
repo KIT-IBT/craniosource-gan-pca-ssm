@@ -1,3 +1,6 @@
+"""
+Create PCA images.
+"""
 import argparse
 import os.path
 import pathlib
@@ -12,14 +15,21 @@ def parseargs():
     Parses arguments.
     """
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('-i', '--input_dir', type=str, help="Input directory", default=os.path.expanduser("../dataset28/validation"))
-    parser.add_argument('-o', '--output_dir', type=str, help="Output directory", default=os.path.expanduser("../demo_out/pca"))
+    parser.add_argument('-i',
+                        '--input_dir',
+                        type=str,
+                        help="Input directory",
+                        default=os.path.expanduser("../dataset28/validation"))
+    parser.add_argument('-o',
+                        '--output_dir',
+                        type=str,
+                        help="Output directory",
+                        default=os.path.expanduser("../demo_out/pca"))
     parser.add_argument('-n', '--number', type=int, help="Number images", default=10)
-    args = parser.parse_args()
-    print(args)
-    return args
+    arguments = parser.parse_args()
+    return arguments
 
-def main():
+if __name__ == "__main__":
     args = parseargs()
     classes = ("control", "coronal", "metopic", "sagittal")
     RATIO_VARIANCE=0.95
@@ -43,10 +53,9 @@ def main():
         pca_estimator.fit(imgs_vector)
         for i in range(args.number):
             ran = rng.normal(size=len(pca_estimator.components_))
-            rev = pca_estimator.inverse_transform(ran/pca_estimator.singular_values_[0] * pca_estimator.explained_variance_ratio_[0])
+            rev = pca_estimator.inverse_transform(
+                    ran / pca_estimator.singular_values_[0] *
+                    pca_estimator.explained_variance_ratio_[0])
             img_ran = rev.reshape(loaded_img.shape) + img_mu
             img_uint8 = numpy.uint8(img_ran * 255)
             skimage.io.imsave(cl_dir + f"/drawn_{i}.png",img_uint8)
-
-if __name__ == "__main__":
-    main()
